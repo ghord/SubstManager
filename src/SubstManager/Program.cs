@@ -59,31 +59,33 @@ namespace SubstManager
     [Verb("remote", HelpText = "Switches alias to remote access")]
     class RemoteOptions
     {
-        [Value(0, HelpText = "Alias name", Required = true, MetaName = "alias")]
+        [Value(0, HelpText = "Alias name", MetaName = "alias")]
         public string? Alias { get; set; }
     }
-    
+
 
     [Verb("local", HelpText = "Switches alias to local cached access")]
     class LocalOptions
     {
-        [Value(0, HelpText = "Alias name", Required = true, MetaName = "alias")]
+        [Value(0, HelpText = "Alias name", MetaName = "alias")]
         public string? Alias { get; set; }
     }
 
     [Verb("update", HelpText = "Updates files missing from local cache")]
     class UpdateOptions
     {
-
+        [Value(0, HelpText = "Alias name", MetaName = "alias")]
+        public string? Alias { get; set; }
     }
 
     [Verb("fetch", HelpText = "Show changes since last update")]
     class FetchOptions
     {
-
+        [Value(0, HelpText = "Alias name", MetaName = "alias")]
+        public string? Alias { get; set; }
     }
 
-    [Verb("status", HelpText = "Shows the status")]
+    [Verb("status", HelpText = "Shows active alias status")]
     class StatusOptions
     {
 
@@ -140,8 +142,51 @@ namespace SubstManager
                         case StatusOptions _:
                             RunStatus();
                             return;
+                        case UpdateOptions update:
+                            RunUpdate(update);
+                            return;
+                        case FetchOptions fetch:
+                            RunFetch(fetch);
+                            return;
                     }
                 });
+        }
+
+        private static void RunFetch(FetchOptions options)
+        {
+            var cfg = Config.Load();
+
+            var alias = options.Alias;
+
+            if (alias == null && !cfg.TryGetValue(Config.ActiveAlias, out alias))
+            {
+                Error("No active alias");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) ||
+                !aliases.TryGetValue(alias, out var path))
+            {
+                Error($"Alias '{alias}' not found");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) ||
+                !states.TryGetValue(alias, out var state) ||
+                state == State.Remote)
+            {
+                Error($"Alias '{alias}' is not local");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string> locals) ||
+                !locals.TryGetValue(alias, out var localPath))
+            {
+                Error($"Alias '{alias}' is local but it is missing local path");
+                return;
+            }
+
+            Robocopy(path, localPath, "/l", "/njh", "/njs", "/ndl");
         }
 
         private static void RunStatus()
@@ -195,12 +240,160 @@ namespace SubstManager
 
         private static void RunRemote(RemoteOptions options)
         {
-            throw new NotImplementedException();
+            var cfg = Config.Load();
+
+            var alias = options.Alias;
+
+            if (alias == null && !cfg.TryGetValue(Config.ActiveAlias, out alias))
+            {
+                Error("No active alias");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+                !aliases.TryGetValue(alias, out var _))
+            {
+                Error($"Alias '{alias}' not found");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) ||
+                !states.TryGetValue(alias, out var state) ||
+                state == State.Remote)
+            {
+                Error($"Alias '{alias}' is already remote");
+                return;
+            }
+
+            Info($"Switching alias '{alias}' to remote");
+
+            states[alias] = State.Remote;
+
+            cfg.SetValue(Config.AliasStates, states);
+            cfg.Save();
+
+            Info($"Alias '{alias}' is now remote");
+
+            if (cfg.TryGetValue(Config.ActiveAlias, out string activeAlias) && alias == activeAlias)
+            {
+                RunUnmount();
+                RunMount();
+            }
         }
 
         private static void RunLocal(LocalOptions options)
         {
-            throw new NotImplementedException();
+            var cfg = Config.Load();
+
+            var alias = options.Alias;
+
+            if (alias == null && !cfg.TryGetValue(Config.ActiveAlias, out alias))
+            {
+                Error("No active alias");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+                !aliases.TryGetValue(alias, out var _))
+            {
+                Error($"Alias '{alias}' not found");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states))
+            {
+                states = new Dictionary<string, State>();
+                cfg.SetValue(Config.AliasLocals, states);
+            }
+
+            if (states.TryGetValue(alias, out var state) &&
+                state == State.Local)
+            {
+                Error($"Alias '{alias}' is already local");
+                return;
+            }
+
+            Info($"Switching alias '{alias}' to local");
+
+            states[alias] = State.Local;
+
+            cfg.SetValue(Config.AliasStates, states);
+            cfg.Save();
+
+            Info($"Alias '{alias}' is now local");
+
+            RunUpdate(new UpdateOptions { Alias = alias });
+
+            if (cfg.TryGetValue(Config.ActiveAlias, out string activeAlias) && alias == activeAlias)
+            {
+                RunUnmount();
+                RunMount();
+            }
+        }
+
+        private static void RunUpdate(UpdateOptions options)
+        {
+            var cfg = Config.Load();
+
+            var alias = options.Alias;
+
+            if (alias == null && !cfg.TryGetValue(Config.ActiveAlias, out alias))
+            {
+                Error("No active alias");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) ||
+                !aliases.TryGetValue(alias, out var path))
+            {
+                Error($"Alias '{alias}' not found");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) ||
+                !states.TryGetValue(alias, out var state) ||
+                state == State.Remote)
+            {
+                Error($"Alias '{alias}' is not local");
+                return;
+            }
+
+            if (!cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string> locals))
+            {
+                locals = new Dictionary<string, string>();
+            }
+
+            if (!locals.TryGetValue(alias, out var localPath))
+            {
+                Info($"Local cache for alias not found, creating one...");
+
+                if (!cfg.TryGetValue(Config.CacheDirectory, out string directory))
+                {
+                    Error($"Missing configuration value '{Config.CacheDirectory}'");
+                    return;
+                }
+
+                localPath = Path.Combine(directory, alias);
+
+                if (!Directory.Exists(localPath))
+                {
+                    Info($"Creating directory '{localPath}'");
+                    Directory.CreateDirectory(localPath);
+                }
+
+                locals[alias] = localPath;
+
+                cfg.SetValue(Config.AliasLocals, locals);
+                cfg.Save();
+            }
+            else
+            {
+                Info($"Local cache for alias found at {localPath}");
+            }
+
+            Info($"Updating local cache '{localPath}' for alias '{alias}'");
+
+            Robocopy(path, localPath, "/mir", "/njh", "/njs");
         }
 
         private static void RunMount()
@@ -222,9 +415,27 @@ namespace SubstManager
             if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
                 aliases.TryGetValue(alias, out var path) && path != null)
             {
-                Info($"Mounting alias '{alias}' on drive '{drive}' in as remote '{path}'");
+                if (cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) &&
+                    states.TryGetValue(alias, out var state) &&
+                    state == State.Local)
+                {
+                    if (cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string> locals) &&
+                        locals.TryGetValue(alias, out var localPath))
+                    {
+                        Info($"Mounting alias '{alias}' on drive '{drive}' as local '{localPath}'");
 
-                Subst(drive, path);
+                        Subst(drive, localPath);
+                    }
+                    else
+                    {
+                        Error($"Alias '{alias}' is local but it is missing local path");
+                    }
+                }
+                else
+                {
+                    Info($"Mounting alias '{alias}' on drive '{drive}' as remote '{path}'");
+                    Subst(drive, path);
+                }
             }
             else
             {
@@ -256,7 +467,7 @@ namespace SubstManager
                 aliases.TryGetValue(options.Alias, out var path))
             {
                 if (cfg.TryGetValue(Config.ActiveAlias, out string activeAlias) &&
-                    activeAlias != options.Alias)
+                    activeAlias == options.Alias)
                 {
                     Info($"Alias '{options.Alias}' is already active");
                 }
@@ -280,6 +491,19 @@ namespace SubstManager
         private static void Subst(params string[] arguments)
         {
             var psi = new ProcessStartInfo("subst.exe");
+
+            foreach (var argument in arguments)
+            {
+                psi.ArgumentList.Add(argument);
+            }
+
+            var process = Process.Start(psi);
+            process.WaitForExit();
+        }
+
+        public static void Robocopy(params string[] arguments)
+        {
+            var psi = new ProcessStartInfo("robocopy.exe");
 
             foreach (var argument in arguments)
             {
