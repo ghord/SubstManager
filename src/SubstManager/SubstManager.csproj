@@ -6,6 +6,10 @@
     <AssemblyName>sm</AssemblyName>
     <Copyright>Copyright (C) Grzegorz Hordyński 2019</Copyright>
     <Nullable>enable</Nullable>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+    <PublishSingleFile>true</PublishSingleFile>
+    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
