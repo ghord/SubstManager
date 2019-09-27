@@ -479,7 +479,8 @@ namespace SubstManager
 
                     cfg.Save();
 
-                    RunMount();
+                    if (cfg.TryGetValue(Config.Drive, out string _))
+                        RunMount();
                 }
             }
             else
