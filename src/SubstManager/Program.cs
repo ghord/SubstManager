@@ -480,7 +480,10 @@ namespace SubstManager
                     cfg.Save();
 
                     if (cfg.TryGetValue(Config.Drive, out string _))
+                    {
+                        RunUnmount();
                         RunMount();
+                    }
                 }
             }
             else
