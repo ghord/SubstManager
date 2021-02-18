@@ -318,20 +318,23 @@ namespace SubstManager
             states[alias] = State.Local;
 
             cfg.SetValue(Config.AliasStates, states);
-            cfg.Save();
 
-            Info($"Alias '{alias}' is now local");
-
-            RunUpdate(new UpdateOptions { Alias = alias });
-
-            if (cfg.TryGetValue(Config.ActiveAlias, out string? activeAlias) && alias == activeAlias)
+            if (RunUpdate(new UpdateOptions { Alias = alias }))
             {
-                RunUnmount();
-                RunMount();
+                cfg.Save();
+
+                Info($"Alias '{alias}' is now local");
+
+                if (cfg.TryGetValue(Config.ActiveAlias, out string? activeAlias) && alias == activeAlias)
+                {
+                    RunUnmount();
+                    RunMount();
+                }
             }
+
         }
 
-        private static void RunUpdate(UpdateOptions options)
+        private static bool RunUpdate(UpdateOptions options)
         {
             var cfg = Config.Load();
 
@@ -340,14 +343,14 @@ namespace SubstManager
             if (alias == null && !cfg.TryGetValue(Config.ActiveAlias, out alias))
             {
                 Error("No active alias");
-                return;
+                return false;
             }
 
             if (!cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) ||
                 !aliases.TryGetValue(alias, out var path))
             {
                 Error($"Alias '{alias}' not found");
-                return;
+                return false;
             }
 
             if (!cfg.TryGetValueDictionary<State>(Config.AliasStates, out var states) ||
@@ -355,7 +358,7 @@ namespace SubstManager
                 state == State.Remote)
             {
                 Error($"Alias '{alias}' is not local");
-                return;
+                return false;
             }
 
             if (!cfg.TryGetValueDictionary<string>(Config.AliasLocals, out var locals))
@@ -370,7 +373,7 @@ namespace SubstManager
                 if (!cfg.TryGetValue(Config.CacheDirectory, out string? directory))
                 {
                     Error($"Missing configuration value '{Config.CacheDirectory}'");
-                    return;
+                    return false;
                 }
 
                 localPath = Path.Combine(directory, alias);
@@ -394,6 +397,8 @@ namespace SubstManager
             Info($"Updating local cache '{localPath}' for alias '{alias}'");
 
             Robocopy(path, localPath, "/mir", "/njh", "/njs");
+
+            return true;
         }
 
         private static void RunMount()
