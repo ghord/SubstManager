@@ -164,14 +164,14 @@ namespace SubstManager
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) ||
+            if (!cfg.TryGetValueDictionary(Config.Aliases, out Dictionary<string, string>? aliases) ||
                 !aliases.TryGetValue(alias, out var path))
             {
                 Error($"Alias '{alias}' not found");
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) ||
+            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State>? states) ||
                 !states.TryGetValue(alias, out var state) ||
                 state == State.Remote)
             {
@@ -179,7 +179,7 @@ namespace SubstManager
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string> locals) ||
+            if (!cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string>? locals) ||
                 !locals.TryGetValue(alias, out var localPath))
             {
                 Error($"Alias '{alias}' is local but it is missing local path");
@@ -196,11 +196,11 @@ namespace SubstManager
             Info("status:");
             PushIndent();
 
-            if (cfg.TryGetValue(Config.ActiveAlias, out string alias))
+            if (cfg.TryGetValue<string>(Config.ActiveAlias, out var alias))
             {
                 Info($"active alias: {alias}");
 
-                if (cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) &&
+                if (cfg.TryGetValueDictionary<State>(Config.AliasStates, out var states) &&
                     states.TryGetValue(alias, out var state))
                 {
                     Info($"state:        {state.ToString().ToLower()}");
@@ -210,7 +210,7 @@ namespace SubstManager
                     Info("state:        remote");
                 }
 
-                if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+                if (cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) &&
                     aliases.TryGetValue(alias, out var path))
                 {
                     Info($"remote path:  {path}");
@@ -220,7 +220,7 @@ namespace SubstManager
                     Info($"remote path:  <missing>");
                 }
 
-                if (cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string> locals) &&
+                if (cfg.TryGetValueDictionary<string>(Config.AliasLocals, out var locals) &&
                          locals.TryGetValue(alias, out var local))
                 {
                     Info($"local path:   {local}");
@@ -250,14 +250,14 @@ namespace SubstManager
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+            if (!cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) ||
                 !aliases.TryGetValue(alias, out var _))
             {
                 Error($"Alias '{alias}' not found");
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) ||
+            if (!cfg.TryGetValueDictionary<State>(Config.AliasStates, out var states) ||
                 !states.TryGetValue(alias, out var state) ||
                 state == State.Remote)
             {
@@ -274,7 +274,7 @@ namespace SubstManager
 
             Info($"Alias '{alias}' is now remote");
 
-            if (cfg.TryGetValue(Config.ActiveAlias, out string activeAlias) && alias == activeAlias)
+            if (cfg.TryGetValue<string>(Config.ActiveAlias, out var activeAlias) && alias == activeAlias)
             {
                 RunUnmount();
                 RunMount();
@@ -293,14 +293,14 @@ namespace SubstManager
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+            if (!cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) ||
                 !aliases.TryGetValue(alias, out var _))
             {
                 Error($"Alias '{alias}' not found");
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states))
+            if (!cfg.TryGetValueDictionary<State>(Config.AliasStates, out var states))
             {
                 states = new Dictionary<string, State>();
                 cfg.SetValue(Config.AliasLocals, states);
@@ -324,7 +324,7 @@ namespace SubstManager
 
             RunUpdate(new UpdateOptions { Alias = alias });
 
-            if (cfg.TryGetValue(Config.ActiveAlias, out string activeAlias) && alias == activeAlias)
+            if (cfg.TryGetValue(Config.ActiveAlias, out string? activeAlias) && alias == activeAlias)
             {
                 RunUnmount();
                 RunMount();
@@ -343,14 +343,14 @@ namespace SubstManager
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) ||
+            if (!cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) ||
                 !aliases.TryGetValue(alias, out var path))
             {
                 Error($"Alias '{alias}' not found");
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) ||
+            if (!cfg.TryGetValueDictionary<State>(Config.AliasStates, out var states) ||
                 !states.TryGetValue(alias, out var state) ||
                 state == State.Remote)
             {
@@ -358,7 +358,7 @@ namespace SubstManager
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string> locals))
+            if (!cfg.TryGetValueDictionary<string>(Config.AliasLocals, out var locals))
             {
                 locals = new Dictionary<string, string>();
             }
@@ -367,7 +367,7 @@ namespace SubstManager
             {
                 Info($"Local cache for alias not found, creating one...");
 
-                if (!cfg.TryGetValue(Config.CacheDirectory, out string directory))
+                if (!cfg.TryGetValue(Config.CacheDirectory, out string? directory))
                 {
                     Error($"Missing configuration value '{Config.CacheDirectory}'");
                     return;
@@ -400,26 +400,26 @@ namespace SubstManager
         {
             var cfg = Config.Load();
 
-            if (!cfg.TryGetValue(Config.Drive, out string drive))
+            if (!cfg.TryGetValue<string>(Config.Drive, out string? drive))
             {
                 Error($"Missing configuration value '{Config.Drive}'");
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.ActiveAlias, out string alias))
+            if (!cfg.TryGetValue(Config.ActiveAlias, out string? alias))
             {
                 Error($"No active alias found");
                 return;
             }
 
-            if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+            if (cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) &&
                 aliases.TryGetValue(alias, out var path) && path != null)
             {
-                if (cfg.TryGetValue(Config.AliasStates, out Dictionary<string, State> states) &&
+                if (cfg.TryGetValueDictionary<State>(Config.AliasStates, out var states) &&
                     states.TryGetValue(alias, out var state) &&
                     state == State.Local)
                 {
-                    if (cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string> locals) &&
+                    if (cfg.TryGetValueDictionary<string>(Config.AliasLocals, out var locals) &&
                         locals.TryGetValue(alias, out var localPath))
                     {
                         Info($"Mounting alias '{alias}' on drive '{drive}' as local '{localPath}'");
@@ -448,7 +448,7 @@ namespace SubstManager
         {
             var cfg = Config.Load();
 
-            if (!cfg.TryGetValue(Config.Drive, out string drive))
+            if (!cfg.TryGetValue(Config.Drive, out string? drive))
             {
                 Error($"Missing configuration value '{Config.Drive}'");
                 return;
@@ -463,10 +463,10 @@ namespace SubstManager
         {
             var cfg = Config.Load();
 
-            if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
-                aliases.TryGetValue(options.Alias, out var path))
+            if (cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) &&
+                aliases.ContainsKey(options.Alias))
             {
-                if (cfg.TryGetValue(Config.ActiveAlias, out string activeAlias) &&
+                if (cfg.TryGetValue(Config.ActiveAlias, out string? activeAlias) &&
                     activeAlias == options.Alias)
                 {
                     Info($"Alias '{options.Alias}' is already active");
@@ -499,7 +499,7 @@ namespace SubstManager
             }
 
             var process = Process.Start(psi);
-            process.WaitForExit();
+            process?.WaitForExit();
         }
 
         public static void Robocopy(params string[] arguments)
@@ -512,14 +512,14 @@ namespace SubstManager
             }
 
             var process = Process.Start(psi);
-            process.WaitForExit();
+            process?.WaitForExit();
         }
 
         private static void RunUnalias(UnaliasOptions options)
         {
             var cfg = Config.Load();
 
-            if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+            if (cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) &&
                 aliases.Remove(options.Name))
             {
                 //TODO: active alias
@@ -540,7 +540,7 @@ namespace SubstManager
 
             if (options.Name == null)
             {
-                if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) && aliases.Count > 0)
+                if (cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) && aliases.Count > 0)
                 {
                     Info("Aliases:");
                     PushIndent();
@@ -564,7 +564,7 @@ namespace SubstManager
             }
             else if (options.Path == null)
             {
-                if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases) &&
+                if (cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases) &&
                     aliases.TryGetValue(options.Name, out var path))
                 {
                     Info("Alias:");
@@ -579,7 +579,7 @@ namespace SubstManager
             }
             else
             {
-                if (cfg.TryGetValue(Config.Aliases, out Dictionary<string, string> aliases))
+                if (cfg.TryGetValueDictionary<string>(Config.Aliases, out var aliases))
                 {
                     if (aliases.ContainsKey(options.Name))
                     {
