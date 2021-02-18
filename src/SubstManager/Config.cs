@@ -102,7 +102,7 @@ namespace SubstManager
             }
         }
 
-        public bool TryGetValue<T>(string key, [NotNullWhen(true)] out T value) 
+        public bool TryGetValue<T>(string key, [NotNullWhen(true)] out T? value) 
         {
             if (values_.TryGetValue(key, out var token))
             {
@@ -116,9 +116,25 @@ namespace SubstManager
                 return false;
             }
 
-#pragma warning disable CS8653 // A default expression introduces a null value for a type parameter.
-            value = default;
-#pragma warning restore CS8653 // A default expression introduces a null value for a type parameter.
+            value = default(T);
+            return false;
+        }
+
+        public bool TryGetValueDictionary<T>(string key, [NotNullWhen(true)]  out  Dictionary<string, T>? value)
+        {
+            if (values_.TryGetValue(key, out var token))
+            {
+                value = token.ToObject<Dictionary<string, T>?>();
+
+                if (value != null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            value = null;
             return false;
         }
 

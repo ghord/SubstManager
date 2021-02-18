@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>sm</AssemblyName>
     <Copyright>Copyright (C) Grzegorz Hordyński 2019</Copyright>
     <Nullable>enable</Nullable>
