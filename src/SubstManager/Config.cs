@@ -138,7 +138,7 @@ namespace SubstManager
             return false;
         }
 
-        public void SetValue<T>(string key, T value)
+        public void SetValue<T>(string key, T value) where T : notnull
         {
             values_[key] = JToken.FromObject(value);
         }
@@ -152,7 +152,7 @@ namespace SubstManager
                 result.Add(value.Key, value.Value);
             }
 
-            using (var file = File.Open(path, FileMode.OpenOrCreate))
+            using (var file = File.Open(path, FileMode.Create))
             using (var writer = new StreamWriter(file, Encoding.UTF8))
             using (var jsonWriter = new JsonTextWriter(writer) { Formatting = Formatting.Indented })
             {

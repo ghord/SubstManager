@@ -179,7 +179,7 @@ namespace SubstManager
                 return;
             }
 
-            if (!cfg.TryGetValue(Config.AliasLocals, out Dictionary<string, string>? locals) ||
+            if (!cfg.TryGetValueDictionary(Config.AliasLocals, out Dictionary<string, string>? locals) ||
                 !locals.TryGetValue(alias, out var localPath))
             {
                 Error($"Alias '{alias}' is local but it is missing local path");
@@ -276,6 +276,7 @@ namespace SubstManager
 
             if (cfg.TryGetValue<string>(Config.ActiveAlias, out var activeAlias) && alias == activeAlias)
             {
+
                 RunUnmount();
                 RunMount();
             }
@@ -318,20 +319,18 @@ namespace SubstManager
             states[alias] = State.Local;
 
             cfg.SetValue(Config.AliasStates, states);
+            cfg.Save();
+
+            Info($"Alias '{alias}' is now local");
 
             if (RunUpdate(new UpdateOptions { Alias = alias }))
             {
-                cfg.Save();
-
-                Info($"Alias '{alias}' is now local");
-
                 if (cfg.TryGetValue(Config.ActiveAlias, out string? activeAlias) && alias == activeAlias)
                 {
                     RunUnmount();
                     RunMount();
                 }
             }
-
         }
 
         private static bool RunUpdate(UpdateOptions options)
@@ -459,9 +458,16 @@ namespace SubstManager
                 return;
             }
 
-            Info($"Unmounting drive '{drive}'");
+            if (IsSubst(drive))
+            {
+                Info($"Unmounting drive '{drive}'");
 
-            Subst(drive, "/D");
+                Subst(drive, "/D");
+            }
+            else
+            {
+                Info($"Drive '{drive}' is not mounted");
+            }
         }
 
         private static void RunSwitch(SwitchOptions options)
@@ -484,7 +490,7 @@ namespace SubstManager
 
                     cfg.Save();
 
-                    if (cfg.TryGetValue(Config.Drive, out string _))
+                    if (cfg.TryGetValue<string>(Config.Drive, out _))
                     {
                         RunUnmount();
                         RunMount();
@@ -495,6 +501,11 @@ namespace SubstManager
             {
                 Error($"Cannot find alias '{options.Alias}'");
             }
+        }
+
+        private static bool IsSubst(string drive)
+        {
+            return DriveInfo.GetDrives().Any(x => x.Name.StartsWith(drive));
         }
 
         private static void Subst(params string[] arguments)
